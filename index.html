@@ -4226,11 +4226,12 @@ setInterval(()=>{ if(!$("v-historial").hidden) cargarHistorial(); },60000);
   if(!demo&&!acc.ok){ mostrarAcceso(acc); return; }
   mostrarEstadoTotp(!!acc.totp);
   cfg=await api("/api/config");
-  while(REMOTO&&!(cfg&&cfg.filtrado)){ toast((cfg&&cfg.error)||"Esperando al equipo…"); await sleep(6000); cfg=await api("/api/config") }   // equipo sin internet: reintenta fillForms(); await refresh(); cargarUpdate(); setInterval(cargarUpdate,60000);
+  while(REMOTO&&!(cfg&&cfg.filtrado)){ toast((cfg&&cfg.error)||"Esperando al equipo…"); await sleep(6000); cfg=await api("/api/config") }   // equipo sin internet: reintenta
+  fillForms(); await refresh(); cargarUpdate(); setInterval(cargarUpdate,60000);
   // Al abrir la webapp el equipo consulta GitHub (si no lo hizo en los últimos 5 min), así la ventana de versión nueva sale al entrar
   if(!demo&&!REMOTO){ post("/api/accion",{tipo:"buscar_al_abrir"}).then(async()=>{ for(let i=0;i<10;i++){ await sleep(2000); const r=await api("/api/update"); if(r&&r.estado&&r.estado!=="Buscando…") break; } cargarUpdate(); }); }
   let tab="estado"; try{tab=localStorage.getItem("tab")||"estado"}catch(e){}
-  show(["estado","filtrado","luces","historial","equipo","resumen"].includes(tab)?tab:"estado");
+  show(["estado","filtrado","luces","historial","equipo","resumen"].includes(tab)&&!(REMOTO&&tab==="equipo")?tab:"estado");
   setInterval(refresh,5000);
 })();
 </script>
