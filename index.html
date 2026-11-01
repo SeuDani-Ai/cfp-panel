@@ -3207,7 +3207,8 @@ function rmLeerCred(){ try{ return JSON.parse(localStorage.getItem("cfpRemoto")|
 function rmConectar(c){
   return new Promise(res=>{
     let listo=false; const fin=r=>{ if(!listo){ listo=true; res(r) } };
-    const cli=mqtt.connect("wss://"+c.host+":8084/mqtt",{username:c.user,password:c.pass,clientId:c.user+"-"+Math.random().toString(16).slice(2,8),clean:true,reconnectPeriod:5000,connectTimeout:10000});
+    const cli=mqtt.connect("wss://"+c.host+":8084/mqtt",{username:c.user,password:c.pass,clientId:c.user+"-"+Math.random().toString(16).slice(2,8),clean:true,reconnectPeriod:5000,connectTimeout:10000,
+      timerVariant:"native"});                              // sin "ayudante" (worker) para los relojes: las reglas del navegador de la página lo bloqueaban en la PC
     const base="cfp/"+c.id+"/";
     cli.on("connect",()=>cli.subscribe([base+"estado",base+"resp",base+"conexion"],{qos:1},(e,g)=>{
       if(e||(g||[]).some(x=>x.qos>2)) fin({ok:false,error:"El servidor no dejó leer este equipo. Revisá el identificador del equipo."}); else fin({ok:true}) }));
