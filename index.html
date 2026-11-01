@@ -360,7 +360,7 @@ body.remoto nav .tabs{grid-template-columns:repeat(5,1fr)}
       <div class="tile" data-t="luces"><div class="lbl">Luz exterior</div><div class="val num" id="tLuz">—</div><div class="sub" id="tLuzSub">—</div></div>
     </div>
 
-    <div class="card" data-t="red">
+    <div class="card" data-t="red" data-local>
       <div class="wifi">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>
         <div><b id="wifiTitle">—</b><span class="small muted" id="wifiSub">—</span></div>
@@ -3388,13 +3388,15 @@ function renderEstado(){
       if(!f.dias[di]) continue; if(k===0&&hora.getHours()*60+hora.getMinutes()>=toMin(f.ini)) continue;
       txt=f.ini; sub=k===0?"Hoy":k===1?"Mañana":["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][d.getDay()]; break;}}
     $("tProx").innerHTML=txt==="—"?txt:txt+' <small class="unit-hs">hs</small>';$("tProxSub").textContent=sub;}
-  // WiFi
+  // WiFi (desde afuera el equipo no manda estos datos y el cuadro no se muestra)
+  if(est.wifi){
   const w=est.wifi, ap=w.modo==="ap";
   $("wifiTitle").textContent=ap?"Solo red propia del equipo":"Conectado a "+w.red;
   $("wifiSub").textContent=ap?"Conectalo a tu WiFi para la hora automática y los avisos al celular":"Dirección en tu red: "+w.ip+" o pileta.local";
   $("bWifi").textContent=ap?"Conectar el equipo a mi WiFi":"Cambiar de red WiFi";
   $("eWifi").textContent=ap?"El equipo usa solo su propia red (Pileta-XXXX, dirección 192.168.4.1).":"Conectado a "+w.red+" ("+w.ip+"). Su red propia sigue activa.";
   $("bWifi2").textContent=$("bWifi").textContent;
+  }
   marcarConexion();
   // Alertas
   const al=$("alerts"); al.innerHTML="";
@@ -3439,8 +3441,8 @@ function renderResumen(){
   $("rsLuces").innerHTML=filas(lr);
   $("rsProt").innerHTML=filas(P.activa?[["Cortar si trabaja en seco","Activado"],["Tiempo para cebar",P.gracia+" min"],["Corta debajo del",P.umbral+" % del consumo normal"],["Reintentos fallidos antes de bloquear el encendido",P.reintentos],["Consumo normal",P.ref?P.ref+" W":"Lo aprende en el próximo filtrado"]]:[["Cortar si trabaja en seco","Apagado: la bomba no está protegida"]]);
   $("rsSens").innerHTML=filas([["Sonda de temperatura del agua",S.agua?"Instalada":"No"],["Sensor de luz",S.ldr?"Instalado":"No"]]);
-  if(est){const h=new Date(est.hora),w=est.wifi;
-    $("rsEquipo").innerHTML=filas([["Fecha y hora del equipo",est.hora?["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][h.getDay()]+" "+h.toLocaleDateString("es-AR")+" "+hhmm(h):"Sin hora"],["Bomba",(ESTADOS[est.bomba.estado]||ESTADOS.apagada).t],["Temperatura del agua",est.agua==null?"Sin dato":est.agua.toFixed(1)+" °C"],["WiFi de la casa",w.modo==="sta"?w.red:"No conectado"],["Avisos por Telegram",cfg.tg?.act?"Activados"+(cfg.tg.cada>0?" · estado cada "+fmtCada(cfg.tg.cada):""):"Desactivados"],["Versión del firmware",(est.version||"—")+(ultUpd?(ultUpd.disponible?" · hay una nueva ("+ultUpd.disponible+")":" · al día"):"")],["Dirección",w.modo==="sta"?w.ip+" o pileta.local":"192.168.4.1 (red "+(w.ap||"Pileta")+")"]]);}
+  if(est){const h=new Date(est.hora),w=est.wifi||{};   // desde afuera el equipo no manda los datos de la red de la casa
+    $("rsEquipo").innerHTML=filas([["Fecha y hora del equipo",est.hora?["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][h.getDay()]+" "+h.toLocaleDateString("es-AR")+" "+hhmm(h):"Sin hora"],["Bomba",(ESTADOS[est.bomba.estado]||ESTADOS.apagada).t],["Temperatura del agua",est.agua==null?"Sin dato":est.agua.toFixed(1)+" °C"],...(est.wifi?[["WiFi de la casa",w.modo==="sta"?w.red:"No conectado"]]:[]),["Avisos por Telegram",cfg.tg?.act?"Activados"+(cfg.tg.cada>0?" · estado cada "+fmtCada(cfg.tg.cada):""):"Desactivados"],["Versión del firmware",(est.version||"—")+(ultUpd?(ultUpd.disponible?" · hay una nueva ("+ultUpd.disponible+")":" · al día"):"")],...(est.wifi?[["Dirección",w.modo==="sta"?w.ip+" o pileta.local":"192.168.4.1 (red "+(w.ap||"Pileta")+")"]]:[["Conexión","Por internet, desde afuera"]])]);}
   // Resúmenes de una línea (arriba de cada pestaña y en los temas plegados de Equipo)
   const dl=["L","M","X","J","V","S","D"], diasC=f.dias.every(Boolean)?"todos los días":f.dias.some(Boolean)?dl.filter((d,i)=>f.dias[i]).join(" "):"ningún día";
   $("sumF").textContent=f.hab?"Filtra de "+f.ini+" a "+f.fin+" hs · "+diasC+(f.alarma?" · con aviso sonoro":""):"Filtrado automático apagado";
@@ -3456,7 +3458,7 @@ function renderResumen(){
   const T=cfg.tg||{};
   $("sumTg").textContent=T.act?"Activados"+(T.cada>0?" · cada "+fmtCada(T.cada):""):"Desactivados";
   if(est){
-    $("sumWifi").textContent=est.wifi.modo==="sta"?est.wifi.red:"Solo red propia";
+    if(est.wifi) $("sumWifi").textContent=est.wifi.modo==="sta"?est.wifi.red:"Solo red propia";
     const dif=Math.round((Date.now()-est.hora)/60000);
     $("sumReloj").textContent=!est.hora?"Sin hora":Math.abs(dif)<1?"En hora":"Desfasado "+Math.abs(dif)+" min";
   }
