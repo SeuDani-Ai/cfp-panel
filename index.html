@@ -3238,7 +3238,12 @@ async function apiRemoto(path,opts){
   if(path==="/api/auth") return {ok:true,setup:false,totp:false};
   if(path==="/api/estado"){ for(let i=0;i<40&&!rm.estado;i++) await sleep(200); return rm.estado||{ok:false,offline:true} }
   if(path==="/api/config"&&metodo==="GET"){ const r=await rmOrden("config"); return r.ok?r.datos:r }
-  if(path==="/api/config") return rmOrden("guardar",body);
+  if(path==="/api/config"){                                // manda solo lo que se puede cambiar desde afuera (el equipo rechaza el resto)
+    const b=JSON.parse(JSON.stringify(body)); delete b.prot; delete b.sens; delete b.sist;
+    if(b.tg){ delete b.tg.chat; delete b.tg.token; delete b.tg.act }
+    if(b.filtrado){ delete b.filtrado.alarma; delete b.filtrado.aviso; delete b.filtrado.final }
+    return rmOrden("guardar",b);
+  }
   if(path==="/api/historial"){ const r=await rmOrden("historial",null,15000); return r.ok?r.datos:r }
   if(path==="/api/accion") return ["luces","luces_auto","apagar"].includes(body.tipo)?rmOrden("accion",body):{ok:false,error:"Esto solo se puede hacer desde casa."};
   if(path==="/api/update") return {actual:rm.estado?rm.estado.version:"",disponible:"",estado:"Las actualizaciones se manejan desde casa.",pospuesta:false};
@@ -3780,7 +3785,7 @@ function autoSave(src){
     if($("fIni").value===$("fFin").value){setSaveState("err","No se guardó: la hora de inicio y la de fin no pueden ser iguales.");return}
     readForms(); const r=await post("/api/config",cfg);
     if(r.ok){setSaveState("okk","Guardado en el equipo a las "+hhmm(new Date())+" hs"+(demo?" (demostración)":""));refresh()}
-    else setSaveState("err","No se pudo guardar. Revisá la conexión con el equipo y volvé a cambiar el dato.");
+    else setSaveState("err",r.error&&!r.offline?"No se guardó: "+r.error:"No se pudo guardar. Revisá la conexión con el equipo y volvé a cambiar el dato.");
   },700);
 }
 document.querySelectorAll("#v-filtrado input:not(#fHab), #v-filtrado select, #v-luces input, #v-luces select, #v-equipo input:not(#pAct), #v-equipo select").forEach(el=>el.addEventListener("change",e=>autoSave(e.target)));
